@@ -534,7 +534,7 @@ public class BeatDetect
 			diff = (float)Math.max(instant - C * E, 0);
 			dAvg = specAverage(fdBuffer[i]);
 			diff2 = (float)Math.max(diff - dAvg, 0);
-			if (fTimer[i] < sensitivity)
+			if (fTimer[i] * 1000 < sensitivity)
 			{
 				fIsOnset[i] = false;
 			}
