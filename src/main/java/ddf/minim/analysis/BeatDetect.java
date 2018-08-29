@@ -96,13 +96,13 @@ public class BeatDetect
 	private boolean			isOnset;
 	private float[]			eBuffer;
 	private float[]			dBuffer;
-	private long				timer;
+	private double				elapsedSeconds;
 	// vars for fEnergy
 	private boolean[]			fIsOnset;
 	private FFT					spect;
 	private float[][]			feBuffer;
 	private float[][]			fdBuffer;
-	private long[]				fTimer;
+	private double[]				fTimer;
 	private float[]			varGraph;
 	private int					varCnt;
 
@@ -195,7 +195,7 @@ public class BeatDetect
 		isOnset = false;
 		eBuffer = new float[sampleRate / timeSize];
 		dBuffer = new float[sampleRate / timeSize];
-		timer = System.currentTimeMillis();
+		elapsedSeconds = 0.0;
 		insertAt = 0;
 	}
 
@@ -207,11 +207,10 @@ public class BeatDetect
 		fIsOnset = new boolean[numAvg];
 		feBuffer = new float[numAvg][sampleRate / timeSize];
 		fdBuffer = new float[numAvg][sampleRate / timeSize];
-		fTimer = new long[numAvg];
-		long start = System.currentTimeMillis();
+		fTimer = new double[numAvg];
 		for (int i = 0; i < fTimer.length; i++)
 		{
-			fTimer[i] = start;
+			fTimer[i] = 0.0;
 		}
 		insertAt = 0;
 	}
@@ -221,7 +220,7 @@ public class BeatDetect
 		isOnset = false;
 		eBuffer = null;
 		dBuffer = null;
-		timer = 0;
+		elapsedSeconds = 0f;
 	}
 
 	private void releaseFEResources()
@@ -498,7 +497,7 @@ public class BeatDetect
 		pushVar(diff2);
 		// report false if it's been less than 'sensitivity'
 		// milliseconds since the last true value
-		if (System.currentTimeMillis() - timer < sensitivity)
+		if (elapsedSeconds * 1000 < sensitivity)
 		{
 			isOnset = false;
 		}
@@ -507,7 +506,7 @@ public class BeatDetect
 		else if (diff2 > 0 && instant > 2)
 		{
 			isOnset = true;
-			timer = System.currentTimeMillis();
+			elapsedSeconds = 0.0;
 		}
 		// OMG it wasn't true!
 		else
@@ -519,6 +518,7 @@ public class BeatDetect
 		insertAt++;
 		if (insertAt == eBuffer.length)
 			insertAt = 0;
+		elapsedSeconds += ((double) samples.length) / sampleRate;
 	}
 
 	private void fEnergy(float[] in)
@@ -534,14 +534,14 @@ public class BeatDetect
 			diff = (float)Math.max(instant - C * E, 0);
 			dAvg = specAverage(fdBuffer[i]);
 			diff2 = (float)Math.max(diff - dAvg, 0);
-			if (System.currentTimeMillis() - fTimer[i] < sensitivity)
+			if (fTimer[i] < sensitivity)
 			{
 				fIsOnset[i] = false;
 			}
 			else if (diff2 > 0)
 			{
 				fIsOnset[i] = true;
-				fTimer[i] = System.currentTimeMillis();
+				fTimer[i] = 0f;
 			}
 			else
 			{
@@ -549,6 +549,8 @@ public class BeatDetect
 			}
 			feBuffer[i][insertAt] = instant;
 			fdBuffer[i][insertAt] = diff;
+
+			fTimer[i] += ((double) in.length) / sampleRate;
 		}
 		insertAt++;
 		if (insertAt == feBuffer[0].length)
